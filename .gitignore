@@ -1,0 +1,22 @@
+# Secrets - DO NOT COMMIT
+*-secret.yaml.local
+*.env.local
+generated-secrets/
+CREDENTIALS.txt
+
+# Backup files
+*.bak
+*~
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Kustomize build output
+kustomization-build.yaml
