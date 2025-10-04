@@ -1,27 +1,26 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: gpu-machineset
+  name: nvidia-gpu-operator
   namespace: openshift-gitops
   labels:
-    app.kubernetes.io/instance: gpu-machineset
+    app.kubernetes.io/instance: nvidia-gpu-operator
     app.kubernetes.io/part-of: litemaas-infrastructure
 spec:
   project: default
   source:
     repoURL: https://github.com/anatsheh84/litemaas-deployment.git
     targetRevision: HEAD
-    path: base/gpu-machineset
+    path: base/nvidia-gpu-operator
   destination:
     server: https://kubernetes.default.svc
-    namespace: openshift-machine-api
+    namespace: nvidia-gpu-operator
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
-      - CreateNamespace=false
-      - RespectIgnoreDifferences=true
+      - CreateNamespace=true
     retry:
       limit: 5
       backoff:

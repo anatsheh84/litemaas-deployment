@@ -3,18 +3,18 @@ kind: Application
 metadata:
   name: litemaas
   namespace: openshift-gitops
+  labels:
+    app.kubernetes.io/instance: litemaas
+    app.kubernetes.io/part-of: litemaas
 spec:
   project: default
-  
   source:
     repoURL: https://github.com/anatsheh84/litemaas-deployment.git
     targetRevision: HEAD
     path: base/litemaas
-  
   destination:
     server: https://kubernetes.default.svc
     namespace: litemaas
-  
   syncPolicy:
     automated:
       prune: true

@@ -3,18 +3,18 @@ kind: Application
 metadata:
   name: node-feature-discovery
   namespace: openshift-gitops
+  labels:
+    app.kubernetes.io/instance: node-feature-discovery
+    app.kubernetes.io/part-of: litemaas-infrastructure
 spec:
   project: default
-  
   source:
     repoURL: https://github.com/anatsheh84/litemaas-deployment.git
     targetRevision: HEAD
     path: base/nfd
-  
   destination:
     server: https://kubernetes.default.svc
     namespace: openshift-nfd
-  
   syncPolicy:
     automated:
       prune: true
@@ -22,7 +22,7 @@ spec:
     syncOptions:
       - CreateNamespace=true
     retry:
-      limit: 3
+      limit: 5
       backoff:
         duration: 5s
         factor: 2
