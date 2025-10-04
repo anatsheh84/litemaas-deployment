@@ -3,26 +3,27 @@ kind: Kustomization
 
 namespace: litemaas
 
-# Remote resources from upstream LiteMaaS repository
-# Using the correct Git URL format with path
+# Base OpenShift deployment resources from the upstream litemaas repo
 resources:
   - namespace.yaml
-  - github.com/anatsheh84/litemaas/deployment/openshift?ref=main
+  - https://raw.githubusercontent.com/anatsheh84/litemaas/main/deployment/openshift/postgres-statefulset.yaml
+  - https://raw.githubusercontent.com/anatsheh84/litemaas/main/deployment/openshift/postgres-service.yaml
+  - https://raw.githubusercontent.com/anatsheh84/litemaas/main/deployment/openshift/postgres-init-configmap.yaml
+  - https://raw.githubusercontent.com/anatsheh84/litemaas/main/deployment/openshift/litellm-deployment.yaml
+  - https://raw.githubusercontent.com/anatsheh84/litemaas/main/deployment/openshift/litellm-service.yaml
+  - https://raw.githubusercontent.com/anatsheh84/litemaas/main/deployment/openshift/litellm-route.yaml
+  - generated-secrets/postgres-secret.yaml
+  - generated-secrets/litellm-secret.yaml
+  - generated-secrets/backend-secret.yaml
+  
+  # TODO: Add backend and frontend when images are ready  
+  # - https://raw.githubusercontent.com/anatsheh84/litemaas/main/deployment/openshift/backend-deployment.yaml.template
+  # - https://raw.githubusercontent.com/anatsheh84/litemaas/main/deployment/openshift/backend-service.yaml
+  # - https://raw.githubusercontent.com/anatsheh84/litemaas/main/deployment/openshift/frontend-deployment.yaml.template
+  # - https://raw.githubusercontent.com/anatsheh84/litemaas/main/deployment/openshift/frontend-service.yaml
+  # - https://raw.githubusercontent.com/anatsheh84/litemaas/main/deployment/openshift/frontend-route.yaml
 
-# Local secret templates (must be customized before deployment)
-# IMPORTANT: Comment out the secretGenerator and use generated-secrets/ instead
-# secretGenerator:
-#   - name: postgres-secret
-#     files:
-#       - postgres-secret.yaml
-#   - name: backend-secret
-#     files:
-#       - backend-secret.yaml
-#   - name: litellm-secret
-#     files:
-#       - litellm-secret.yaml
-
-# Common labels
+# Common labels for all resources
 commonLabels:
   app.kubernetes.io/part-of: litemaas
   app.kubernetes.io/managed-by: kustomize
