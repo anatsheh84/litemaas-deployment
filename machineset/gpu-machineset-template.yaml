@@ -50,7 +50,7 @@ spec:
           deviceIndex: 0
           iamInstanceProfile:
             id: CLUSTER_NAME-worker-profile
-          instanceType: g6.2xlarge  # NVIDIA L4 GPU instance
+          instanceType: g6.2xlarge  # NVIDIA L4 Tensor Core GPU (24GB GDDR6)
           kind: AWSMachineProviderConfig
           metadata:
             creationTimestamp: null
