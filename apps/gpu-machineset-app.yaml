@@ -3,6 +3,8 @@ kind: Application
 metadata:
   name: gpu-machineset
   namespace: openshift-gitops
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
   labels:
     app.kubernetes.io/instance: gpu-machineset
     app.kubernetes.io/part-of: litemaas-infrastructure
