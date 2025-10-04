@@ -150,7 +150,7 @@ Before deploying to production, update the following files with secure credentia
 ## 📦 Components
 
 ### 1. GPU MachineSet
-- **Purpose**: Provisions AWS EC2 GPU instances (g5.2xlarge) as OpenShift worker nodes
+- **Purpose**: Provisions AWS EC2 GPU instances (g6.2xlarge) as OpenShift worker nodes
 - **Namespace**: `openshift-machine-api`
 - **Features**:
   - NVIDIA L4 GPU (24GB GDDR6)
@@ -269,7 +269,7 @@ oc annotate application gpu-machineset -n openshift-gitops argocd.argoproj.io/re
 
 Before deploying to production:
 - [ ] Update GPU MachineSet with cluster-specific values (AMI, cluster name, zones)
-- [ ] Verify AWS service quotas for GPU instances (g5.2xlarge)
+- [ ] Verify AWS service quotas for GPU instances (g6.2xlarge)
 - [ ] Update all default passwords and API keys
 - [ ] Configure proper backup strategy for PostgreSQL
 - [ ] Set up monitoring and alerting (GPU metrics, node health)
