@@ -1,284 +1,215 @@
-# LiteMaaS Deployment on OpenShift
+# LiteMaaS GitOps Deployment
 
-Production-ready deployment configurations for LiteMaaS on OpenShift with GPU support and ArgoCD integration.
+This repository contains the GitOps configuration for deploying LiteMaaS on OpenShift using ArgoCD.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![OpenShift](https://img.shields.io/badge/OpenShift-4.18+-red.svg)](https://www.openshift.com/)
-[![ArgoCD](https://img.shields.io/badge/ArgoCD-Ready-blue.svg)](https://argoproj.github.io/cd/)
+## 📋 Overview
 
-## 🚀 Quick Start
+This deployment uses OpenShift GitOps (ArgoCD) to automatically deploy and manage:
+- **Node Feature Discovery (NFD)** - Detects hardware features
+- **NVIDIA GPU Operator** - Manages GPU resources
+- **LiteMaaS** - AI Model as a Service platform
+  - PostgreSQL Database
+  - LiteLLM Proxy (OpenAI-compatible API gateway)
 
-```bash
-git clone https://github.com/anatsheh84/litemaas-deployment.git
-cd litemaas-deployment
-chmod +x scripts/generate-secrets.sh
-./scripts/generate-secrets.sh
-oc apply -k base/nfd/
-oc apply -k base/gpu-operator/
-oc apply -f generated-secrets/
-oc apply -k base/litemaas/
-```
-
-📖 **[Full Deployment Guide](DEPLOYMENT.md)**
-
-## 📁 Repository Structure
+## 🏗️ Repository Structure
 
 ```
-.
-├── apps/                      # ArgoCD Application definitions
-│   ├── litemaas-app.yaml
-│   ├── nfd-app.yaml
-│   └── gpu-operator-app.yaml
-├── base/                      # Base Kubernetes manifests
-│   ├── litemaas/             # LiteMaaS components
-│   ├── gpu-operator/         # NVIDIA GPU Operator
-│   └── nfd/                  # Node Feature Discovery
-├── machineset/               # GPU MachineSet templates
-│   ├── gpu-machineset-template.yaml
-│   └── README.md
-├── scripts/                  # Utility scripts
-│   └── generate-secrets.sh  # Secret generation script
-├── DEPLOYMENT.md            # Comprehensive deployment guide
+litemaas-deployment/
+├── apps/                          # ArgoCD Application definitions
+│   ├── litemaas-app.yaml         # LiteMaaS application
+│   ├── nfd-app.yaml              # Node Feature Discovery
+│   └── nvidia-gpu-operator-app.yaml
+├── base/
+│   ├── litemaas/
+│   │   ├── kustomization.yaml    # Main kustomization file
+│   │   ├── namespace.yaml        # Namespace definition
+│   │   └── generated-secrets/    # Secret configurations
+│   │       ├── postgres-secret.yaml
+│   │       ├── backend-secret.yaml
+│   │       └── litellm-secret.yaml
+│   ├── nfd/
+│   │   └── kustomization.yaml
+│   └── nvidia-gpu-operator/
+│       └── kustomization.yaml
 └── README.md
 ```
 
-## ✨ Features
+## 🚀 Deployment
 
-- **GitOps Ready**: Full ArgoCD/OpenShift GitOps support
-- **GPU Support**: Pre-configured for NVIDIA GPU workloads
-- **Secure by Default**: Secret generation with strong random values
-- **Production Ready**: Includes monitoring, health checks, and proper resource limits
-- **Modular**: Kustomize-based for easy customization
-- **Well Documented**: Comprehensive guides and inline comments
+### Prerequisites
+- OpenShift 4.x cluster with GPU nodes
+- OpenShift GitOps operator installed
+- GitHub repository access
 
-## 🎯 What is LiteMaaS?
+### Initial Setup
 
-LiteMaaS (LLM-as-a-Service) is a multi-tenant platform for managing and serving Large Language Models with:
+1. **Install OpenShift GitOps Operator** (if not already installed):
+   ```bash
+   oc apply -f https://raw.githubusercontent.com/redhat-developer/gitops-operator/master/deploy/operator.yaml
+   ```
 
-- **Multi-tenant Architecture**: Isolated user workspaces with quotas
-- **Model Management**: Easy model deployment and versioning
-- **Rate Limiting**: Per-user token and request limits
-- **Cost Tracking**: Budget management and usage monitoring
-- **OpenShift OAuth**: Integrated authentication
-- **LiteLLM Integration**: Support for multiple LLM providers (OpenAI, Anthropic, AWS Bedrock, etc.)
+2. **Apply ArgoCD Applications**:
+   ```bash
+   oc apply -f apps/nfd-app.yaml
+   oc apply -f apps/nvidia-gpu-operator-app.yaml
+   oc apply -f apps/litemaas-app.yaml
+   ```
 
-## 📋 Prerequisites
+3. **Monitor Deployment**:
+   ```bash
+   # Check ArgoCD applications
+   oc get applications -n openshift-gitops
+   
+   # Check LiteMaaS pods
+   oc get pods -n litemaas
+   
+   # Get LiteLLM route URL
+   oc get route litellm -n litemaas
+   ```
 
-- OpenShift 4.18+ cluster
-- Cluster admin access
-- `oc` CLI tool
-- `openssl` (for secret generation)
-- Optional: ArgoCD/OpenShift GitOps operator
+## 🔐 Secrets Configuration
 
-## 🛠️ Components
+### ⚠️ IMPORTANT: Update Secrets for Production
 
-### Core Stack
+Before deploying to production, update the following files with secure credentials:
 
-| Component | Description | Version |
-|-----------|-------------|---------|
-| **PostgreSQL** | Database for state management | 16-alpine |
-| **Backend** | Node.js API server | 0.0.19 |
-| **Frontend** | React web interface | 0.0.19 |
-| **LiteLLM** | LLM proxy and routing | Latest |
+1. **PostgreSQL Secret** (`base/litemaas/generated-secrets/postgres-secret.yaml`):
+   ```yaml
+   stringData:
+     username: postgres
+     password: <CHANGE-THIS-SECURE-PASSWORD>
+   ```
 
-### GPU Infrastructure
+2. **LiteLLM Secret** (`base/litemaas/generated-secrets/litellm-secret.yaml`):
+   ```yaml
+   stringData:
+     database-url: postgresql://postgres:<POSTGRES-PASSWORD>@postgres:5432/litemaas_db
+     master-key: <CHANGE-THIS-SECURE-API-KEY>
+     ui-username: <CHANGE-USERNAME>
+     ui-password: <CHANGE-THIS-SECURE-PASSWORD>
+   ```
 
-| Component | Description |
-|-----------|-------------|
-| **Node Feature Discovery** | Hardware feature detection |
-| **NVIDIA GPU Operator** | GPU driver and device plugin management |
-| **GPU MachineSet** | AWS g6 instance template (NVIDIA L4) |
+3. **Backend Secret** (`base/litemaas/generated-secrets/backend-secret.yaml`):
+   ```yaml
+   stringData:
+     DATABASE_URL: postgresql://postgres:<POSTGRES-PASSWORD>@postgres:5432/litemaas_db
+     SECRET_KEY: <CHANGE-THIS-SECURE-SECRET-KEY>
+     ALLOWED_ORIGINS: "https://your-domain.com"
+   ```
 
-## 📚 Documentation
+### Default Credentials (Development Only)
+- **LiteLLM UI Username**: `admin`
+- **LiteLLM UI Password**: `changeme456`
+- **LiteLLM Master Key**: `sk-1234567890abcdef`
+- **PostgreSQL Password**: `changeme123`
 
-- **[Deployment Guide](DEPLOYMENT.md)** - Complete step-by-step deployment instructions
-- **[LiteMaaS Base](base/litemaas/README.md)** - LiteMaaS configuration details
-- **[GPU MachineSet](machineset/README.md)** - GPU node setup guide
-- **[ArgoCD Apps](apps/README.md)** - GitOps deployment guide
+## 📦 Components
 
-## 🔧 Deployment Options
+### Node Feature Discovery (NFD)
+- **Purpose**: Detects hardware capabilities and labels nodes
+- **Namespace**: `openshift-nfd`
+- **Status Check**: `oc get pods -n openshift-nfd`
 
-### Option 1: Manual Deployment
+### NVIDIA GPU Operator
+- **Purpose**: Automates GPU driver installation and management
+- **Namespace**: `nvidia-gpu-operator`
+- **Status Check**: `oc get clusterpolicy -n nvidia-gpu-operator`
 
-```bash
-# 1. Generate secrets
-./scripts/generate-secrets.sh
+### LiteMaaS
+- **Purpose**: AI Model serving platform with LiteLLM proxy
+- **Namespace**: `litemaas`
+- **Components**:
+  - PostgreSQL StatefulSet (persistent database)
+  - LiteLLM Deployment (AI proxy service)
+  - OpenShift Routes (external access)
 
-# 2. Deploy infrastructure
-oc apply -k base/nfd/
-oc apply -k base/gpu-operator/
+## 🌐 Access
 
-# 3. Deploy application
-oc apply -f generated-secrets/
-oc apply -k base/litemaas/
-```
-
-### Option 2: ArgoCD Deployment
-
-```bash
-# 1. Generate and apply secrets
-./scripts/generate-secrets.sh
-oc apply -f generated-secrets/
-
-# 2. Deploy ArgoCD applications
-oc apply -f apps/nfd-app.yaml
-oc apply -f apps/gpu-operator-app.yaml
-oc apply -f apps/litemaas-app.yaml
-```
-
-## 🎮 Accessing the Application
-
-After deployment:
-
-### LiteMaaS Web UI
-```
-https://litemaas-litemaas.apps.<your-cluster-domain>
-```
-Login with OpenShift OAuth
-
-### LiteLLM Admin UI
-```
-https://litellm-litemaas.apps.<your-cluster-domain>/ui
-```
-Username: `admin`  
-Password: From `generated-secrets/CREDENTIALS.txt`
-
-## 🔐 Security
-
-### Secrets Management
-
-All secrets are:
-- Generated with cryptographically secure random values
-- Base64 encoded in Kubernetes secrets
-- Excluded from Git via `.gitignore`
-- Documented in `CREDENTIALS.txt` (store securely!)
-
-### OAuth Integration
-
-LiteMaaS uses OpenShift OAuth for authentication:
-- No separate user management needed
-- OpenShift RBAC integration
-- Automatic session management
-
-## 🚦 GPU Node Configuration
-
-### Create GPU Workers
+After deployment, access LiteLLM at the route URL:
 
 ```bash
-# Update template with your cluster details
-cd machineset
-cp gpu-machineset-template.yaml gpu-machineset.yaml
-# Edit gpu-machineset.yaml
-
-# Create GPU nodes
-oc apply -f gpu-machineset.yaml
+# Get the URL
+LITELLM_URL=$(oc get route litellm -n litemaas -o jsonpath='{.spec.host}')
+echo "LiteLLM UI: https://${LITELLM_URL}"
 ```
 
-### Supported GPU Instance Types
+## 🔧 Maintenance
 
-| Instance | GPU | vCPU | Memory | Use Case |
-|----------|-----|------|--------|----------|
-| g6.2xlarge | 1x L4 (24GB) | 8 | 32GB | **Recommended** |
-| g6.4xlarge | 1x L4 (24GB) | 16 | 64GB | Large models |
-| g6.12xlarge | 4x L4 (96GB) | 48 | 192GB | Multi-GPU |
-| p3.2xlarge | 1x V100 (16GB) | 8 | 61GB | Training |
-
-## 📊 Monitoring
-
-LiteMaaS includes:
-- Prometheus metrics export
-- Health check endpoints
-- Request/response logging
-- Usage tracking per user
-
-Access metrics:
+### Update Secrets
+After updating secrets in Git, ArgoCD will automatically sync changes. To force immediate sync:
 ```bash
-# Backend health
-curl https://litemaas-litemaas.apps.<domain>/api/v1/health/ready
-
-# LiteLLM metrics
-curl https://litellm-litemaas.apps.<domain>/metrics
+oc delete pod -l app=litellm -n litemaas
+oc delete pod postgres-0 -n litemaas  # Be careful - will cause downtime
 ```
 
-## 🔄 Updates
-
-### Update LiteMaaS
-
+### View Logs
 ```bash
-# Update to latest version
-oc set image deployment/backend backend=quay.io/rh-aiservices-bu/litemaas-backend:latest -n litemaas
-oc set image deployment/frontend frontend=quay.io/rh-aiservices-bu/litemaas-frontend:latest -n litemaas
+# LiteLLM logs
+oc logs -f deployment/litellm -n litemaas
+
+# PostgreSQL logs
+oc logs -f postgres-0 -n litemaas
 ```
 
-### Update via ArgoCD
-
+### Scale LiteLLM
 ```bash
-# Trigger sync
-argocd app sync litemaas
-
-# Or enable auto-sync in the Application manifest
+oc scale deployment litellm --replicas=3 -n litemaas
 ```
 
 ## 🐛 Troubleshooting
 
-### Common Issues
-
-| Issue | Solution |
-|-------|----------|
-| Pods not starting | `oc get events -n litemaas` |
-| Database connection failed | Check postgres-secret values |
-| OAuth login fails | Verify oauth-issuer in backend-secret |
-| GPU not detected | Ensure NFD and GPU operator running |
-
-See [DEPLOYMENT.md](DEPLOYMENT.md#troubleshooting) for detailed troubleshooting.
-
-## 🧹 Cleanup
-
-### Remove LiteMaaS Only
+### ArgoCD Application Not Syncing
 ```bash
-oc delete -k base/litemaas/
-oc delete namespace litemaas
+# Check application status
+oc get application litemaas -n openshift-gitops -o yaml
+
+# Force refresh
+oc annotate application litemaas -n openshift-gitops argocd.argoproj.io/refresh=hard --overwrite
 ```
 
-### Remove Everything
-```bash
-oc delete -k base/
-oc delete -f machineset/gpu-machineset.yaml
-oc delete namespace litemaas nvidia-gpu-operator openshift-nfd
-```
+### LiteLLM Pod Stuck in Init
+- Check if PostgreSQL is ready: `oc logs postgres-0 -n litemaas`
+- Verify secret has correct database URL with matching credentials
+
+### Database Connection Issues
+1. Check secrets match between postgres-secret and litellm-secret
+2. Verify PostgreSQL service: `oc get svc postgres -n litemaas`
+3. Test connection from litellm pod:
+   ```bash
+   oc exec -it deployment/litellm -n litemaas -- sh
+   psql $DATABASE_URL -c '\l'
+   ```
+
+## 📚 Additional Resources
+
+- [LiteLLM Documentation](https://docs.litellm.ai/)
+- [OpenShift GitOps](https://docs.openshift.com/gitops/)
+- [NVIDIA GPU Operator](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/)
 
 ## 🤝 Contributing
-
-Contributions welcome! Please:
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Submit a pull request
+4. Test in a development cluster
+5. Submit a pull request
 
-## 📄 License
+## 📝 Notes
 
-MIT License - see [LICENSE](LICENSE) for details
+- This configuration uses `raw.githubusercontent.com` URLs to fetch deployment manifests from the upstream LiteMaaS repository
+- ArgoCD auto-sync is enabled with self-healing
+- PostgreSQL uses a 10Gi persistent volume claim
+- TLS termination is handled by OpenShift Routes
 
-## 🔗 Related Projects
+## ⚠️ Production Checklist
 
-- **[LiteMaaS](https://github.com/anatsheh84/litemaas)** - Main application repository
-- **[OpenShift AI](https://www.redhat.com/en/technologies/cloud-computing/openshift/openshift-ai)** - AI/ML platform
-- **[LiteLLM](https://github.com/BerriAI/litellm)** - LLM proxy library
-
-## 📞 Support
-
-- **Issues**: [GitHub Issues](https://github.com/anatsheh84/litemaas-deployment/issues)
-- **Documentation**: [Deployment Guide](DEPLOYMENT.md)
-- **LiteMaaS Issues**: [Main Repo Issues](https://github.com/anatsheh84/litemaas/issues)
-
-## 🙏 Acknowledgments
-
-- Red Hat AI Services team
-- NVIDIA GPU Operator team
-- LiteLLM community
-- OpenShift community
-
----
-
-**Made with ❤️ for the OpenShift community**
+Before deploying to production:
+- [ ] Update all default passwords and API keys
+- [ ] Configure proper backup strategy for PostgreSQL
+- [ ] Set up monitoring and alerting
+- [ ] Review resource limits and requests
+- [ ] Configure proper RBAC and network policies
+- [ ] Enable authentication for ArgoCD UI
+- [ ] Set up log aggregation
+- [ ] Configure high availability for LiteLLM (multiple replicas)
+- [ ] Review and harden security contexts
