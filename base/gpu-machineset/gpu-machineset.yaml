@@ -35,7 +35,7 @@ spec:
       providerSpec:
         value:
           ami:
-            id: ami-0c8e6bf7411c9db04  # RHCOS AMI for us-east-2
+            id: ami-0adb8862ffe5cc2ab  # Correct RHCOS AMI for this cluster
           apiVersion: machine.openshift.io/v1beta1
           blockDevices:
             - ebs:
