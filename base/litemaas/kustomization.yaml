@@ -1,0 +1,42 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: litemaas
+
+# Remote resources from upstream LiteMaaS repository
+resources:
+  - namespace.yaml
+  - https://github.com/anatsheh84/litemaas/deployment/openshift/postgres-pvc.yaml
+  - https://github.com/anatsheh84/litemaas/deployment/openshift/postgres-service.yaml
+  - https://github.com/anatsheh84/litemaas/deployment/openshift/postgres-statefulset.yaml
+  - https://github.com/anatsheh84/litemaas/deployment/openshift/backend-service.yaml
+  - https://github.com/anatsheh84/litemaas/deployment/openshift/backend-deployment.yaml
+  - https://github.com/anatsheh84/litemaas/deployment/openshift/frontend-service.yaml
+  - https://github.com/anatsheh84/litemaas/deployment/openshift/frontend-deployment.yaml
+  - https://github.com/anatsheh84/litemaas/deployment/openshift/litellm-service.yaml
+  - https://github.com/anatsheh84/litemaas/deployment/openshift/litellm-deployment.yaml
+  - https://github.com/anatsheh84/litemaas/deployment/openshift/routes.yaml
+  - https://github.com/anatsheh84/litemaas/deployment/openshift/oauth-client.yaml
+
+# Local secret templates (must be customized before deployment)
+# Use the generate-secrets.sh script to create production secrets
+# Comment out these lines and use generated-secrets/ instead
+secretGenerator:
+  - name: postgres-secret
+    files:
+      - postgres-secret.yaml
+  - name: backend-secret
+    files:
+      - backend-secret.yaml
+  - name: litellm-secret
+    files:
+      - litellm-secret.yaml
+
+# Common labels
+commonLabels:
+  app.kubernetes.io/part-of: litemaas
+  app.kubernetes.io/managed-by: kustomize
+
+# Common annotations
+commonAnnotations:
+  app.openshift.io/connects-to: '[{"apiVersion":"apps/v1","kind":"StatefulSet","name":"postgres"}]'
