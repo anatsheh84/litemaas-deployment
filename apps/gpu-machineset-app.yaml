@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gpu-machineset
+  namespace: openshift-gitops
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/anatsheh84/litemaas-deployment.git
+    targetRevision: HEAD
+    path: base/gpu-machineset
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: openshift-machine-api
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false  # openshift-machine-api already exists
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
